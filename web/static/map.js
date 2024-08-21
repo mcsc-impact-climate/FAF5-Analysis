@@ -57,7 +57,7 @@ async function attachEventListeners() {
     // Use select2's specific events for handling changes
     uploadedLayerDropdown.on('select2:select select2:unselect', async () => {
       console.log('Uploaded layer dropdown change detected via select2');
-      await updateUploadedLayers(); // Call function to update layers based on uploaded files
+      await updateSelectedLayers({ includeUploaded: true }); // Call function to update layers based on uploaded files
       updateLegend(); // Update the legend to include uploaded layers
     });
   } else {
@@ -254,8 +254,19 @@ function setLayerVisibility(layerName, isVisible) {
 }
 
 // Function to update the selected layers on the map
-async function updateSelectedLayers() {
+async function updateSelectedLayers(options = {}) {
+  const { includeUploaded = false } = options;  // Destructure the options object with a default value
+
   const selectedLayers = getSelectedLayers();
+
+  // If includeUploaded is true, add the selected layers from the uploadedLayerDropdown
+  if (includeUploaded) {
+    const uploadedLayerDropdown = document.getElementById("uploaded-layer-dropdown");
+    const uploadedLayers = Array.from(uploadedLayerDropdown.selectedOptions).map(option => option.value);
+    selectedLayers.push(...uploadedLayers);  // Add uploaded layers to the selectedLayers array
+  }
+
+  console.log("Selected layers:", selectedLayers);
 
   // Create an array of promises for loading layers
   const loadingPromises = [];
@@ -264,8 +275,7 @@ async function updateSelectedLayers() {
   for (const layerName of selectedLayers) {
     if (!layerCache[layerName]) {
       // Push the promise returned by loadLayer into the array
-        loadingPromises.push(loadLayer(layerName));
-
+      loadingPromises.push(loadLayer(layerName, includeUploaded ? layerName : ''));
     } else {
       // Layer is in the cache; update its visibility
       setLayerVisibility(layerName, true);
@@ -301,63 +311,9 @@ async function updateSelectedLayers() {
 
   // Add the selected layers to the map
   for (const layerName of selectedLayers) {
-        map.addLayer(layerCache[layerName]);
-  }
-}
-
-// DMM: I don't think this function will actually work quite as intended, needs to be debugged //
-async function updateUploadedLayers() {
-  console.log("Called updateUploadedLayers")
-  const uploadedLayerDropdown = document.getElementById("uploaded-layer-dropdown");
-  const selectedLayers = Array.from(uploadedLayerDropdown.selectedOptions).map(option => option.value);
-  console.log(selectedLayers)
-
-  const loadingPromises = [];
-  console.log(layerCache)
-
-  // Iterate through the selected uploaded layers
-  for (const layerName of selectedLayers) {
-    console.log(layerName)
-    if (!layerCache[layerName]) {
-      // Push the promise returned by loadLayer into the array
-      console.log("Running loadLayer")
-      loadingPromises.push(loadLayer(layerName, layerName));
-    } else {
-      // Layer is in the cache; update its visibility
-      setLayerVisibility(layerName, true);
-    }
-  }
-
-  try {
-    // Wait for all loading promises to complete before proceeding
-    await Promise.all(loadingPromises);
-
-    // Hide layers that are not in the selectedLayers list
-    Object.keys(layerCache).forEach(attributeKey => {
-      if (!selectedLayers.includes(attributeKey)) {
-        setLayerVisibility(attributeKey, false);
-      }
-    });
-  } catch (error) {
-    // Handle errors if any loading promise fails
-    console.error('Error loading uploaded layers:', error);
-  }
-
-  // Clear all layers from the map except for the base layer
-  const baseLayer = map.getLayers().item(0); // Assuming the base layer is the first layer
-  map.getLayers().clear();
-
-  // Re-add the base layer to the map
-  if (baseLayer) {
-    map.addLayer(baseLayer);
-  }
-
-  // Add the selected uploaded layers to the map
-  for (const layerName of selectedLayers) {
     map.addLayer(layerCache[layerName]);
   }
 }
-// ------------------------------------------------------------------------------------------  //
 
 function updateLegend() {
   const legendDiv = document.getElementById("legend");
