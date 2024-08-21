@@ -1,19 +1,21 @@
 import os
 import json
-
+import boto3
 from collections import OrderedDict
 from functools import wraps
 from django.core.files.storage import default_storage
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
+from urllib.parse import urlparse
 
 INDEX_TEMPLATE = "local.html" if __package__ == "web" else "index_main.html"
-
+STORAGE_URL = 'https://mcsc-datahub-files.s3.us-west-2.amazonaws.com/'
 
 # Create an ordered dictionary to maintain the order of items
 geojsons = OrderedDict()
 
 geojson_directory = "geojsons_simplified"
+uploaded_geojson_directory = "user_upload_files/"
 
 # Total domestic Imports and Exports
 geojsons["Truck Imports and Exports"] = os.path.join(
@@ -155,6 +157,42 @@ def get_geojsons(request):
     try:
         json_str = json.dumps(geojsons, sort_keys=False)
         return HttpResponse(json_str, content_type="application/json")
+    except Exception as e:
+        print(e)
+        return HttpResponse(str(e), content_type="application/json", status=400)
+
+@auth_required
+def get_uploaded_geojsons(request):
+    uploaded_geojsons = OrderedDict()
+
+    try:
+        # Parse the STORAGE_URL to extract bucket name and prefix
+        parsed_url = urlparse(STORAGE_URL)
+        bucket_name = parsed_url.netloc.split('.')[0]  # Extract the bucket name
+        s3_prefix = parsed_url.path.lstrip('/') + uploaded_geojson_directory  # Combine path with geojson directory
+
+        # Initialize the S3 client
+        s3_client = boto3.client('s3')
+
+        # List objects in the S3 bucket with the specified prefix
+        response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=s3_prefix, Delimiter='/')
+        
+        if 'Contents' in response:
+            for obj in response['Contents']:
+                file_path = obj['Key']
+                file_name = obj['Key'].split('/')[-1]
+                # Ensure we're only including files in the top-level directory
+                if file_name.endswith('.geojson') and obj['Key'].count('/') == s3_prefix.count('/'):
+                    file_key = os.path.splitext(file_name)[0]
+                    # Construct the full URL to the file
+                    file_url = os.path.join(file_path)
+                    uploaded_geojsons[file_key] = file_url
+                    #print(file_url)
+
+        # Convert the dictionary to a JSON string
+        json_str = json.dumps(uploaded_geojsons, sort_keys=False)
+        return HttpResponse(json_str, content_type="application/json")
+
     except Exception as e:
         print(e)
         return HttpResponse(str(e), content_type="application/json", status=400)

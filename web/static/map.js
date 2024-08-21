@@ -44,6 +44,25 @@ async function attachEventListeners() {
     await updateSelectedLayers(); // Wait for updateSelectedLayers to complete
     updateLegend(); // Now, call updateLegend after updateSelectedLayers is done
   });
+
+  const uploadedLayerDropdown = $('#uploaded-layer-dropdown');
+  console.log(uploadedLayerDropdown); // This should not be null or undefined
+  if (uploadedLayerDropdown.length > 0) {
+    // Initialize select2 if not already done
+    uploadedLayerDropdown.select2({
+      placeholder: 'Select one or more layers',
+      allowClear: true
+    });
+
+    // Use select2's specific events for handling changes
+    uploadedLayerDropdown.on('select2:select select2:unselect', async () => {
+      console.log('Uploaded layer dropdown change detected via select2');
+      await updateUploadedLayers(); // Call function to update layers based on uploaded files
+      updateLegend(); // Update the legend to include uploaded layers
+    });
+  } else {
+    console.error('uploaded-layer-dropdown not found in the DOM');
+  }
 }
 
 let lastFeature;
@@ -126,16 +145,19 @@ function compareLayers(a, b) {
 // Function to load a specific layer from the server
 async function loadLayer(layerName, filename='') {
   const layerMap=getSelectedLayersValues();
+//  console.log(layerMap.get(layerName))
 
   // Construct the URL without the "geojsons/" prefix
   //const url = `/get_geojson/${layerName}`;
   let url = `${STORAGE_URL}${layerMap.get(layerName)}`
 
+  console.log(url)
   // If needed, update the filename in the url
   if (filename !== '') {
     const lastSlashIndex = url.lastIndexOf('/');
     const dir = url.substring(0, lastSlashIndex + 1);
     url = dir + filename;
+    console.log(url)
   }
 
   let spinner = document.getElementById('lds-spinner')
@@ -282,6 +304,60 @@ async function updateSelectedLayers() {
         map.addLayer(layerCache[layerName]);
   }
 }
+
+// DMM: I don't think this function will actually work quite as intended, needs to be debugged //
+async function updateUploadedLayers() {
+  console.log("Called updateUploadedLayers")
+  const uploadedLayerDropdown = document.getElementById("uploaded-layer-dropdown");
+  const selectedLayers = Array.from(uploadedLayerDropdown.selectedOptions).map(option => option.value);
+  console.log(selectedLayers)
+
+  const loadingPromises = [];
+  console.log(layerCache)
+
+  // Iterate through the selected uploaded layers
+  for (const layerName of selectedLayers) {
+    console.log(layerName)
+    if (!layerCache[layerName]) {
+      // Push the promise returned by loadLayer into the array
+      console.log("Running loadLayer")
+      loadingPromises.push(loadLayer(layerName, layerName));
+    } else {
+      // Layer is in the cache; update its visibility
+      setLayerVisibility(layerName, true);
+    }
+  }
+
+  try {
+    // Wait for all loading promises to complete before proceeding
+    await Promise.all(loadingPromises);
+
+    // Hide layers that are not in the selectedLayers list
+    Object.keys(layerCache).forEach(attributeKey => {
+      if (!selectedLayers.includes(attributeKey)) {
+        setLayerVisibility(attributeKey, false);
+      }
+    });
+  } catch (error) {
+    // Handle errors if any loading promise fails
+    console.error('Error loading uploaded layers:', error);
+  }
+
+  // Clear all layers from the map except for the base layer
+  const baseLayer = map.getLayers().item(0); // Assuming the base layer is the first layer
+  map.getLayers().clear();
+
+  // Re-add the base layer to the map
+  if (baseLayer) {
+    map.addLayer(baseLayer);
+  }
+
+  // Add the selected uploaded layers to the map
+  for (const layerName of selectedLayers) {
+    map.addLayer(layerCache[layerName]);
+  }
+}
+// ------------------------------------------------------------------------------------------  //
 
 function updateLegend() {
   const legendDiv = document.getElementById("legend");

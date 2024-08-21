@@ -2,8 +2,9 @@ import { initMap, updateSelectedLayers, updateLegend, attachEventListeners, hand
 import { populateLayerDropdown, getSelectedLayers } from './ui.js';
 
 let geojsonNames = {};
+let uploadedGeojsonNames = {};
 
-// Fetch available geojson names from the Flask app
+// Fetch available geojson names from the Django app
 fetch(GET_GEOJSONS)
   .then(response => {
     if (!response.ok) {
@@ -13,8 +14,21 @@ fetch(GET_GEOJSONS)
   })
   .then(data => {
     geojsonNames = data;
-    // Populate the layer selection drop-down with geojson names
-    populateLayerDropdown(geojsonNames);
+
+    // Fetch uploaded geojson names from the Django app
+    return fetch(GET_UPLOADED_GEOJSONS);
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json();
+  })
+  .then(data => {
+    uploadedGeojsonNames = data;
+
+    // Populate the layer selection drop-down with both geojson names and uploaded geojson names
+    populateLayerDropdown(geojsonNames, uploadedGeojsonNames);
     attachEventListeners(); // Attach event listeners after populating the dropdown
     initMap(); // Initialize the map after populating the dropdown
     map.on('pointermove', handleMapHover);
@@ -24,4 +38,5 @@ fetch(GET_GEOJSONS)
     console.log('Fetch Error:', error);
   });
 
-export { geojsonNames };
+export { geojsonNames, uploadedGeojsonNames };
+

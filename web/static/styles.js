@@ -21,6 +21,7 @@ function createStyleFunction(layerName, boundaryColor='gray', boundaryWidth=1, i
 
     
     if (geometryType === 'Point' || geometryType === 'MultiPoint') {
+      const fillColor = 'green';
       if (useGradient && bounds) {
         if (gradientType === 'size') {
             const minSize = 2; // Minimum point size

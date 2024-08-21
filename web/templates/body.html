@@ -1,56 +1,83 @@
 {% load static %}
+<!-- Include jQuery and Select2 CSS/JS files -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <div id="map" class="map"></div>
-<div id="legend" style="position: absolute; bottom: 20px; left: 20px; background: rgba(255, 255, 255, 0.8); padding: 10px;">
-  <h3><b>Legend</b></h3>
-</div>
 
-<div id="layer-selection" style="position: absolute; top: 85px; right: 20px; background: rgba(255, 255, 255, 0.8); padding: 10px;">
-<h3>Area Feature (Choose one)</h3>
-<select id="area-layer-dropdown">
-  <option>Select Area Feature</option>
-  <!-- Add options for area layers -->
-</select>
+    <div id="legend" style="position: absolute; bottom: 20px; left: 20px; background: rgba(255, 255, 255, 0.8); padding: 10px;">
+      <h3><b>Legend</b></h3>
+    </div>
 
-  <button class="details-btn" id="area-details-button" style="visibility: hidden;">More</button>
+    <div id="layer-selection" style="position: absolute; top: 85px; right: 20px; background: rgba(255, 255, 255, 0.8); padding: 10px;">
+        <h3>Area Feature (Choose one)</h3>
+        <select id="area-layer-dropdown">
+          <option>Select Area Feature</option>
+          <!-- Add options for area layers -->
+        </select>
 
-<h3>Highway Features (Choose multiple)</h3>
-<button class="toggle-button" data-target="highway-flow-checkboxes">Show Highway Flows</button>
-<div id="highway-flow-checkboxes" style="display: none;">
-  <!-- Add checkboxes for highway flows -->
-</div>
+          <button class="details-btn" id="area-details-button" style="visibility: hidden;">More</button>
 
-<br><br>
-  <button class="toggle-button" data-target="highway-infra-checkboxes">Show Planned Infrastructure Corridors</button>
-<div id="highway-infra-checkboxes" style="display: none;">
-  <!-- Add checkboxes for highway flows -->
-</div>
+        <h3>Highway Features (Choose multiple)</h3>
+        <button class="toggle-button" data-target="highway-flow-checkboxes">Show Highway Flows</button>
+        <div id="highway-flow-checkboxes" style="display: none;">
+          <!-- Add checkboxes for highway flows -->
+        </div>
 
-<h3>Point Features (Choose multiple)</h3>
-<button class="toggle-button" data-target="point-refuel-checkboxes">Show Charge/Fuel Stations</button>
-<div id="point-refuel-checkboxes" style="display: none;">
-  <!-- Add checkboxes for point layers -->
-</div>
+        <br><br>
+          <button class="toggle-button" data-target="highway-infra-checkboxes">Show Planned Infrastructure Corridors</button>
+        <div id="highway-infra-checkboxes" style="display: none;">
+          <!-- Add checkboxes for highway flows -->
+        </div>
 
-<br><br>
+        <h3>Point Features (Choose multiple)</h3>
+        <button class="toggle-button" data-target="point-refuel-checkboxes">Show Charge/Fuel Stations</button>
+        <div id="point-refuel-checkboxes" style="display: none;">
+          <!-- Add checkboxes for point layers -->
+        </div>
 
-  <button class="toggle-button" data-target="point-h2prod-checkboxes">Show Hydrogen Production Facilities</button>
-<div id="point-h2prod-checkboxes" style="display: none;">
-  <!-- Add checkboxes for point layers -->
-</div>
+        <br><br>
 
-<br><br>
+          <button class="toggle-button" data-target="point-h2prod-checkboxes">Show Hydrogen Production Facilities</button>
+        <div id="point-h2prod-checkboxes" style="display: none;">
+          <!-- Add checkboxes for point layers -->
+        </div>
 
-  <button class="toggle-button" data-target="point-other-checkboxes">Show Other Point Features</button>
-<div id="point-other-checkboxes" style="display: none;">
-  <!-- Add checkboxes for point layers -->
-</div>
+        <br><br>
+
+          <button class="toggle-button" data-target="point-other-checkboxes">Show Other Point Features</button>
+        <div id="point-other-checkboxes" style="display: none;">
+          <!-- Add checkboxes for point layers -->
+        </div>
 
 
-<div class="button-container">
-  <button id="apply-button" class="apply-button">Apply</button>
-  <div class="lds-default" id="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
-  <button id="clear-button" class="clear-button">Clear Layers</button>
-</div>
+        <div class="button-container">
+          <button id="apply-button" class="apply-button">Apply</button>
+          <div class="lds-default" id="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+          <button id="clear-button" class="clear-button">Clear Layers</button>
+        </div>
+
+    </div>
+
+
+    <div id="uploaded-layer-selection" style="position: absolute; top: 85px; left: 40px; background: rgba(255, 255, 255, 0.8); padding: 10px;">
+        <h3>Uploaded Layers</h3>
+        <select id="uploaded-layer-dropdown" multiple="multiple" style="width: 100%;">
+            <option>Select Layer</option>
+            <!-- Add options for uploaded layers -->
+        </select>
+    </div>
+
+<!-- Initialize Select2 -->
+<script>
+    $(document).ready(function() {
+        $('#uploaded-layer-dropdown').select2({
+            placeholder: 'Select one or more layers',
+            allowClear: true
+        });
+    });
+</script>
 
 </div>
 
@@ -78,6 +105,7 @@
 <!-- Stuff Displaying DOE Plan, on pause -->
 <script>
   const GET_GEOJSONS = '{% url "get-geojsons" %}';
+  const GET_UPLOADED_GEOJSONS = '{% url "get-uploaded-geojsons" %}';
   const GET_GEOJSON = '{% url "get-geojson" %}';
   const STORAGE_URL = 'https://mcsc-datahub-files.s3.us-west-2.amazonaws.com/';
   const CSV_URL = 'https://raw.githubusercontent.com/mcsc-impact-climate/FAF5-Analysis/main/data/incentives_and_regulations/state_level/';
