@@ -7,6 +7,5 @@ plots/*
 *.pyc
 __pycache__
 .venv
-*.pyc# pixi environments
-.pixi
+*.pyc
 *.egg-info
