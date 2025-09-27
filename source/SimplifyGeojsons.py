@@ -139,6 +139,9 @@ if __name__ == "__main__":
 #        shapefiles[f"Daily Grid Emission Profile Hour {hour}"] = (
 #            f"daily_grid_emission_profiles/daily_grid_emission_profile_hour{hour}.shp"
 #        )
+    shapefiles[f"Average Grid Emissions"] = (
+        f"hourly_grid_emissions/average_grid_emissions.shp"
+    )
 #
 #    # Grid generation and capacity
 #    shapefiles["Grid Capacity and Generation by State"] = (
@@ -165,10 +168,10 @@ if __name__ == "__main__":
 #    shapefiles["Demand Charge by State"] = (
 #        "electricity_rates_merged/demand_charges_by_state.shp"
 #    )
-    # Highway flows
-    shapefiles["Highway Flows (Interstate)"] = (
-        "highway_assignment_links/highway_assignment_links_interstate.shp"
-    )
+#    # Highway flows
+#    shapefiles["Highway Flows (Interstate)"] = (
+#        "highway_assignment_links/highway_assignment_links_interstate.shp"
+#    )
 #    shapefiles["Highway Flows (SU)"] = (
 #        "highway_assignment_links/highway_assignment_links_single_unit.shp"
 #    )
